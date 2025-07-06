@@ -37,6 +37,7 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { SignedIn, UserButton } from '@clerk/nextjs';
 
 const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -213,12 +214,17 @@ const Dashboard = () => {
               <Crown className="mr-2 h-4 w-4" />
               Upgrade
             </Button>
-            <Avatar className="h-8 w-8">
+            {/* <Avatar className="h-8 w-8">
               <AvatarImage src={user.avatar} alt={user.name} />
               <AvatarFallback>
                 {user.name.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
-            </Avatar>
+            </Avatar> */}
+            <div>
+              <SignedIn>
+                <UserButton />
+              </SignedIn>
+            </div>
           </div>
         </div>
       </header>
