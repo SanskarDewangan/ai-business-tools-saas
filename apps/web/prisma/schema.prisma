@@ -1,0 +1,218 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+model User {
+  id              String   @id @default(cuid())
+  clerkId         String   @unique
+  email           String   @unique
+  firstName       String?
+  lastName        String?
+  imageUrl        String?
+  credits         Int      @default(0)
+  subscriptionTier String  @default("free") // free, pro, enterprise
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  // Relations
+  usageRecords    UsageRecord[]
+  subscriptions   Subscription[]
+  promptPacks     UserPromptPack[]
+  toolUsage       ToolUsage[]
+  reports         Report[]
+  folders         Folder[]
+  
+  @@map("users")
+}
+
+model AITool {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  category    String   // email, ecommerce, content, analysis
+  icon        String?
+  isActive    Boolean  @default(true)
+  creditCost  Int      @default(1)
+  
+  // Tool configuration
+  promptTemplate String
+  inputFields    Json     // Field definitions for the form
+  outputFormat   String   // text, json, markdown
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  toolUsage   ToolUsage[]
+  
+  @@map("ai_tools")
+}
+
+model ToolUsage {
+  id        String   @id @default(cuid())
+  userId    String
+  toolId    String
+  inputData Json
+  output    String
+  creditsUsed Int
+  status    String   // success, error, processing
+  errorMessage String?
+  
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id])
+  tool      AITool   @relation(fields: [toolId], references: [id])
+  
+  @@map("tool_usage")
+}
+
+model PromptPack {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  description String
+  category    String
+  price       Float    @default(0) // 0 for free packs
+  isActive    Boolean  @default(true)
+  
+  // Content
+  prompts     Json     // Array of prompt objects
+  tags        String[]
+  
+  // Metadata
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  userPacks   UserPromptPack[]
+  
+  @@map("prompt_packs")
+}
+
+model UserPromptPack {
+  id           String   @id @default(cuid())
+  userId       String
+  promptPackId String
+  purchasedAt  DateTime @default(now())
+  
+  // Relations
+  user         User       @relation(fields: [userId], references: [id])
+  promptPack   PromptPack @relation(fields: [promptPackId], references: [id])
+  
+  @@unique([userId, promptPackId])
+  @@map("user_prompt_packs")
+}
+
+model Subscription {
+  id                String   @id @default(cuid())
+  userId            String
+  stripeCustomerId  String?
+  stripeSubscriptionId String? @unique
+  stripePriceId     String?
+  status            String   // active, canceled, past_due, etc.
+  tier              String   // free, pro, enterprise
+  creditsPerMonth   Int      @default(0)
+  
+  currentPeriodStart DateTime?
+  currentPeriodEnd   DateTime?
+  cancelAtPeriodEnd  Boolean  @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  user              User     @relation(fields: [userId], references: [id])
+  
+  @@map("subscriptions")
+}
+
+model UsageRecord {
+  id        String   @id @default(cuid())
+  userId    String
+  credits   Int
+  type      String   // earned, spent, purchased
+  source    String   // subscription, purchase, tool_usage
+  description String?
+  
+  createdAt DateTime @default(now())
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id])
+  
+  @@map("usage_records")
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  content     String
+  type        String   // usage, analytics, export
+  format      String   // pdf, csv, json
+  
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@map("reports")
+}
+
+model Folder {
+  id          String   @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  color       String?
+  isShared    Boolean  @default(false)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@map("folders")
+}
+
+model AdminSettings {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     String
+  type      String   // string, number, boolean, json
+  
+  updatedAt DateTime @updatedAt
+  
+  @@map("admin_settings")
+}
+
+model Analytics {
+  id        String   @id @default(cuid())
+  metric    String   // daily_users, tool_usage, revenue
+  value     Float
+  date      DateTime
+  metadata  Json?
+  
+  createdAt DateTime @default(now())
+  
+  @@unique([metric, date])
+  @@map("analytics")
+}
+
