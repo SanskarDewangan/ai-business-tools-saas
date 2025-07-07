@@ -1,24 +1,27 @@
-import { auth } from '@clerk/nextjs/server';
-import { db } from './db';
+import { auth } from '@clerk/nextjs/server'
+import { prisma } from './prisma'
 
 export async function getCurrentUser() {
-  const session = await auth();
-  const userId = session?.userId;
+  const { userId } = await auth()
+  
   if (!userId) {
-    throw new Error('Unauthorized');
+    throw new Error('Unauthorized')
   }
-  const user = await db.user.findUnique({
+
+  const user = await prisma.user.findUnique({
     where: { clerkId: userId },
     include: {
       subscriptions: {
         where: { status: 'active' },
         orderBy: { createdAt: 'desc' },
-        take: 1,
-      },
-    },
-  });
+        take: 1
+      }
+    }
+  })
+
   if (!user) {
-    throw new Error('User not found');
+    throw new Error('User not found')
   }
-  return user;
+
+  return user
 }

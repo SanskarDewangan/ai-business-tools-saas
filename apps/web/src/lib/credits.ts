@@ -1,7 +1,7 @@
-import { db } from './db'
+import { prisma } from './prisma'
 
 export async function deductCredits(userId: string, amount: number) {
-  const user = await db.user.findUnique({
+  const user = await prisma.user.findUnique({
     where: { id: userId }
   })
 
@@ -9,12 +9,12 @@ export async function deductCredits(userId: string, amount: number) {
     throw new Error('Insufficient credits')
   }
 
-  await db.$transaction([
-    db.user.update({
+  await prisma.$transaction([
+    prisma.user.update({
       where: { id: userId },
       data: { credits: { decrement: amount } }
     }),
-    db.usageRecord.create({
+    prisma.usageRecord.create({
       data: {
         userId,
         credits: -amount,
@@ -26,19 +26,19 @@ export async function deductCredits(userId: string, amount: number) {
   ])
 }
 
-export async function addCredits(userId: string, amount: number, source: string) {
-  await db.$transaction([
-    db.user.update({
+export async function addCredits(userId: string, amount: number, source: string, description?: string) {
+  await prisma.$transaction([
+    prisma.user.update({
       where: { id: userId },
       data: { credits: { increment: amount } }
     }),
-    db.usageRecord.create({
+    prisma.usageRecord.create({
       data: {
         userId,
         credits: amount,
         type: 'earned',
         source,
-        description: `Added ${amount} credits from ${source}`
+        description: description || `Added ${amount} credits from ${source}`
       }
     })
   ])

@@ -1,32 +1,16 @@
 import { NextResponse } from 'next/server'
-import { db } from '@/lib/db'
-import { getCurrentUser } from '@/lib/auth'
+import { prisma } from '@/lib/prisma'
 
 export async function GET() {
   try {
-    const tools = await db.aITool.findMany({
+    const tools = await prisma.aITool.findMany({
       where: { isActive: true },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { name: 'asc' }
     })
+
     return NextResponse.json(tools)
   } catch (error) {
+    console.error('Error fetching tools:', error)
     return NextResponse.json({ error: 'Failed to fetch tools' }, { status: 500 })
   }
 }
-
-export async function POST(req: Request) {
-  try {
-    await getCurrentUser() // Ensure user is authenticated
-    const toolData = await req.json()
-
-    const tool = await db.aITool.create({
-      data: toolData
-    })
-
-    return NextResponse.json(tool)
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to create tool' }, { status: 500 })
-  }
-}
-
-
